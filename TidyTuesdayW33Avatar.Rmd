@@ -1,0 +1,95 @@
+---
+title: "TidyTuesday Avatar: The last airbender"
+output: html_document
+---
+TidyTuesday Avatar: The last airbender 2020-08-11 |
+[Description](https://github.com/rfordatascience/tidytuesday/blob/master/data/2020/2020-08-11/readme.md) |
+Contributor: Sabina Rako, Twitter: @ra_sabina]
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidytuesdayR)
+library(tidyverse)
+library(skimr)
+library(stringr)
+library(GGally)
+library(tvthemes)
+library(directlabels)
+library(extrafont)
+
+loadfonts()
+```
+
+
+## Importing data
+
+```{r include=FALSE}
+tuesdata <- tidytuesdayR::tt_load(2020, week = 33)
+avatar <- tuesdata$avatar
+```
+
+## Exploring data
+
+```{r}
+skim(avatar)
+```
+
+```{r}
+#Top 10 characters asking questions in first book
+
+book1 <- avatar %>% filter(book_num == 1 & character != "Scene Description") %>% 
+  mutate(character = replace(character, character == "Aang:", "Aang")) %>% 
+  mutate(questions_count = stringr::str_count(character_words, "\\?")) %>% 
+  group_by(character) %>% 
+  select(character, questions_count) %>% 
+  summarise(sum = sum(questions_count))  %>% 
+  arrange(desc(sum)) %>% 
+  top_n(10) %>% 
+  mutate(book ="Water")
+book1
+
+
+#Top 10 characters asking questions in second book
+book2 <- avatar %>% filter(book_num == 2 & character != "Scene Description") %>% 
+  mutate(questions_count = stringr::str_count(character_words, "\\?")) %>% 
+  group_by(character) %>% 
+  select(character, questions_count) %>% 
+  summarise(sum = sum(questions_count))  %>% 
+  arrange(desc(sum)) %>% 
+  top_n(10) %>% 
+  mutate(book ="Earth")
+book2
+
+#Top 10 characters asking questions in third book
+book3 <- avatar %>% filter(book_num == 3 & character != "Scene Description") %>% 
+  mutate(questions_count = stringr::str_count(character_words, "\\?")) %>% 
+  group_by(character) %>% select(character, questions_count) %>% 
+  summarise(sum = sum(questions_count))  %>% 
+  arrange(desc(sum)) %>% 
+  top_n(10) %>% 
+  mutate(book ="Fire")
+book3
+
+CharactersQuestionsBook <- bind_rows(book1,book2,book3)
+CharactersQuestionsBook <- CharactersQuestionsBook %>% tidyr::pivot_wider(names_from = book, values_from = sum)
+CharactersQuestionsBook 
+
+p2 <- CharactersQuestionsBook %>% 
+  ggparcoord(
+    columns = 2:4, groupColumn = 1, 
+    title = "Avatar: The last airbender",
+    scale = "globalminmax",
+    alphaLines = 0.7) +
+    scale_color_avatar(palette = "FireNation")+
+  theme_avatar(legend.position="none") +
+  theme(plot.title = element_text(family = "Herculanum", size = 25), 
+        axis.text.x = element_text(family = "Herculanum",size = 18), 
+        axis.text.y = element_text(size = 16)) +
+  ylab("") + xlab("") + 
+  geom_line(size = 2) + labs(subtitle = "Which character has asked the most questions?", caption = "TidyTuesday w33 contribution")  + directlabels::geom_dl(aes(label = character), method = "first.qp") 
+
+p2
+
+ggsave("TTweek_33.png")
+
+```
